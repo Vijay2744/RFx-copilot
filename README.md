@@ -31,11 +31,11 @@ AI output.
 
 | Tab | What happens | What's real |
 |---|---|---|
-| ① RFx co-pilot | Chat to draft scope, lines, questionnaire and terms. It won't mark the RFx ready until unit, currency, GST, freight and the quality gate are explicit. | LLM |
-| ② Vendor inbox | The raw files exactly as received, plus what the AI read from each one. | LLM extraction (vision for the photo) |
-| ③ Comparison & review | 30 lines × 5 vendors on one basis, with 🟢🟠🔴 flags. Inspect any cell to see the source text or photo, the conversion steps and the flags. Accept, edit or exclude it (maker-checker). Draft a clarification email to the vendor. | Deterministic normalization and checks; LLM drafts the email |
-| ④ Ask the analyst | Plain-English questions. The agent writes pandas code, runs it on the real tables and answers only from the output. "Show the work" exposes every line of code. | LLM tool-calling + real code execution |
-| ⑤ Award | MILP optimizer (quality gate, vendor share cap, max vendors, **conditional discounts**), a stress test on the amber assumptions, and an award gate. Exports an Excel award pack with a full audit trail. | Deterministic (scipy MILP) |
+| Overview + ① Request | Chat to draft scope, lines, questionnaire and terms. It won't mark the RFx ready until unit, currency, GST, freight and the quality gate are explicit. | LLM |
+| ② Responses | The raw files exactly as received, plus what the AI read from each one. | LLM extraction (vision for the photo) |
+| ③ Review | 30 lines × 5 vendors on one basis, with 🟢🟠🔴 flags. Inspect any cell to see the source text or photo, the conversion steps and the flags. Accept, edit or exclude it (maker-checker). Draft a clarification email to the vendor. | Deterministic normalization and checks; LLM drafts the email |
+| ④ Decide (analyst) | Plain-English questions. The agent writes pandas code, runs it on the real tables and answers only from the output. "Show the work" exposes every line of code. | LLM tool-calling + real code execution |
+| ④ Decide (award) | MILP optimizer (quality gate, vendor share cap, max vendors, **conditional discounts**), a stress test on the amber assumptions, and an award gate. Exports an Excel award pack with a full audit trail. | Deterministic (scipy MILP) |
 
 ## The ugly edges in the dataset (all deliberate)
 
