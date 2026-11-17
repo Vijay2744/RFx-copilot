@@ -227,6 +227,32 @@ with tabs[2]:
              "Last yr": "₹{:,.2f}", "Qty": "{:,}"}), height=560, width="stretch")
         st.caption("Bold border = cheapest usable quote on that line (red cells excluded).")
 
+        # questionnaire + attached documents + terms, aligned to the SAME vendor columns
+        vi = vendors.set_index("vendor")
+        qp = questionnaire.pivot(index="q_id", columns="vendor", values="value")
+        qa_ = questionnaire.pivot(index="q_id", columns="vendor", values="answer")
+        side = {
+            "Quality gate": {v: {"pass": "✅ pass", "fail": "❌ fail"}.get(vi.quality[v], "❓ unknown") for v in vcols},
+            "ISO certificate (from attachment)": {v: (f"valid till {vi.iso_certificate_valid_until[v]}"
+                                                      if pd.notna(vi.iso_certificate_valid_until[v])
+                                                      and vi.iso_certificate_valid_until[v] >= s.eval_date
+                                                      else f"⚠️ expired {vi.iso_certificate_valid_until[v]}"
+                                                      if pd.notna(vi.iso_certificate_valid_until[v])
+                                                      else "no certificate attached") for v in vcols},
+        }
+        for qd in rfx["questionnaire"]:
+            side[f"{qd['q_id']}: {qd['question'][:45]}"] = {
+                v: f"{qa_.loc[qd['q_id'], v]} · {qp.loc[qd['q_id'], v]}".strip(" ·") for v in vcols}
+        side.update({
+            "Lines quoted": {v: f"{vi.lines_quoted[v]} / {len(rfx_lines)}" for v in vcols},
+            "Payment terms": {v: vi.payment_terms[v] for v in vcols},
+            "Lead time (days)": {v: vi.lead_time_days[v] for v in vcols},
+            "Freight": {v: vi.freight_terms[v] for v in vcols},
+            "Discount": {v: vi.discount_text[v] or "—" for v in vcols},
+        })
+        st.markdown("##### Same vendors: questionnaire, attached documents and terms")
+        st.dataframe(pd.DataFrame(side).T[vcols].astype(str), width="stretch")
+
         st.markdown("#### Vendor scorecard")
         vs = vendors[["vendor", "quality", "lines_quoted", "lines_green", "lines_amber", "lines_red",
                       "iso_certificate_valid_until", "payment_terms", "lead_time_days", "freight_terms",
