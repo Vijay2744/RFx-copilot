@@ -101,6 +101,9 @@ def optimize_award(quotes: pd.DataFrame, vendors: pd.DataFrame, eligible_vendors
     res = milp(c, constraints=LinearConstraint(np.array(A_), lb, ub), integrality=integrality,
                bounds=Bounds(np.zeros(N), ubounds))
     if not res.success:
+        if disc_v:   # numerical trouble with the discount model: fall back to plain cheapest-per-line
+            return optimize_award(quotes, vendors, eligible_vendors, quality_only, max_vendor_share,
+                                  allowed_status, lines, price_col, max_vendors, discount_aware=False)
         return {**empty, "status": f"infeasible: {res.message}"}
     pick = q[np.round(res.x[:n]) == 1]
     award = pick[["line_id", "description", "vendor", "qty", price_col, "value", "status",
@@ -168,7 +171,8 @@ def sensitivity(quotes: pd.DataFrame, vendors: pd.DataFrame, pct: float = 0.10, 
     """
     base = optimize_award(quotes, vendors, **opt_kwargs)
     if base["award"].empty:
-        return dict(verdict="No base award", base=base)
+        return dict(verdict="No base award", base=base, regret=0.0, amber_by_vendor={},
+                    lines_changed=pd.DataFrame())
     chosen = set(zip(base["award"].line_id, base["award"].vendor))
     q2 = quotes.copy()
     amber = q2.status == "amber"
@@ -176,6 +180,11 @@ def sensitivity(quotes: pd.DataFrame, vendors: pd.DataFrame, pct: float = 0.10, 
     q2.loc[amber & is_chosen, "landed_inr"] *= (1 + pct)
     q2.loc[amber & ~is_chosen, "landed_inr"] *= (1 - pct)
     stressed = optimize_award(q2, vendors, **opt_kwargs)
+    if stressed["status"] != "optimal" or stressed["award"].empty:
+        return dict(verdict=f"Stress test couldn't run ({stressed['status']}). Base award stands.",
+                    lines_changed=pd.DataFrame(), base_total=base["total"], stressed_total=None,
+                    keep_total_under_stress=None, regret=0.0, exposure=0.0, awarded_amber_lines=0,
+                    amber_by_vendor={}, base=base)
     # cost of KEEPING today's award if the assumptions turn out wrong
     keep = base["award"][["line_id", "vendor", "qty"]].merge(q2[["line_id", "vendor", "landed_inr"]],
                                                             on=["line_id", "vendor"])

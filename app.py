@@ -177,7 +177,11 @@ def issues_list():
 
 def recommendation():
     res = A.optimize_award(quotes, vendors, quality_only=True)
-    sens = A.sensitivity(quotes, vendors, pct=0.10, quality_only=True) if res["status"] == "optimal" else None
+    try:
+        sens = A.sensitivity(quotes, vendors, pct=0.10, quality_only=True) if res["status"] == "optimal" else None
+    except Exception as e:
+        sens = dict(verdict=f"Stress test couldn't run: {e}", regret=0.0, amber_by_vendor={},
+                    lines_changed=pd.DataFrame())
     return res, sens
 
 
@@ -555,7 +559,10 @@ elif page == "4 · Decide":
         if res["status"] != "optimal":
             st.error(f"No award possible with these rules: {res['status']}")
         else:
-            sens = A.sensitivity(quotes, vendors, pct=stress, **kw) if stress else None
+            try:
+                sens = A.sensitivity(quotes, vendors, pct=stress, **kw) if stress else None
+            except Exception as e:
+                sens = dict(verdict=f"Stress test couldn't run: {e}", regret=0.0, amber_by_vendor={})
             robust = sens is None or sens["verdict"].startswith("ROBUST")
             sv = A.best_single_vendor(quotes, vendors, quality_only=qo)
             full = sv[sv.covers_all]
