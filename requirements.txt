@@ -5,7 +5,7 @@ numpy
 scipy>=1.11
 plotly>=5.20
 openpyxl
-pdfplumber
+pypdf
 python-docx
 pillow
 reportlab

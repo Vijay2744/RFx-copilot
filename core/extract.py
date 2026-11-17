@@ -13,7 +13,6 @@ import mimetypes
 from datetime import datetime
 from pathlib import Path
 
-import pdfplumber
 from docx import Document
 from openpyxl import load_workbook
 
@@ -40,9 +39,16 @@ def read_xlsx(p: Path) -> str:
 
 
 def read_pdf(p: Path) -> str:
+    """pdfplumber if available (better layout), else pypdf (pure Python, installs anywhere)."""
     out = []
-    with pdfplumber.open(p) as pdf:
-        for i, page in enumerate(pdf.pages, 1):
+    try:
+        import pdfplumber
+        with pdfplumber.open(p) as pdf:
+            for i, page in enumerate(pdf.pages, 1):
+                out.append(f"### Page {i}\n{page.extract_text() or '(no text layer)'}")
+    except ImportError:
+        from pypdf import PdfReader
+        for i, page in enumerate(PdfReader(str(p)).pages, 1):
             out.append(f"### Page {i}\n{page.extract_text() or '(no text layer)'}")
     return "\n".join(out)
 
