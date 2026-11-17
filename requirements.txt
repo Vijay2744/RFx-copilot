@@ -1,0 +1,12 @@
+streamlit>=1.40
+openai>=1.40
+pandas>=2.2
+numpy
+scipy>=1.11
+plotly>=5.20
+openpyxl
+pdfplumber
+python-docx
+pillow
+reportlab
+python-dotenv

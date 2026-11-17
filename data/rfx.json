@@ -1,0 +1,322 @@
+{
+  "rfx_id": "RFQ-PKG-2026-114",
+  "title": "Annual rate contract - corrugated packaging (FY 2026-27)",
+  "buyer": "Kethe, Category Buyer - Packaging, Acme Consumer Goods Ltd",
+  "issue_date": "2026-11-02",
+  "due_date": "2026-11-11",
+  "currency": "INR",
+  "price_basis": "Rs per piece, excluding GST, delivered to Acme plant, Hosur (FOR destination)",
+  "terms": {
+    "payment": "60 days from invoice",
+    "validity": "Prices firm for 12 months",
+    "delivery": "Within 14 days of PO, to Hosur plant",
+    "gst": "Quote ex-GST; GST @18% extra"
+  },
+  "questionnaire": [
+    {
+      "q_id": "Q1",
+      "question": "Do you hold a valid ISO 9001 certificate? Attach a copy.",
+      "type": "yes_no"
+    },
+    {
+      "q_id": "Q2",
+      "question": "Will you provide BCT/ECT test reports with every batch?",
+      "type": "yes_no"
+    },
+    {
+      "q_id": "Q3",
+      "question": "Monthly converting capacity (metric tonnes)?",
+      "type": "number"
+    },
+    {
+      "q_id": "Q4",
+      "question": "Lead time from PO to delivery (days)?",
+      "type": "number"
+    },
+    {
+      "q_id": "Q5",
+      "question": "Do you accept 60-day payment terms?",
+      "type": "yes_no"
+    }
+  ],
+  "quality_gate": "Q1 = Yes with a valid (unexpired) certificate AND Q2 = Yes",
+  "vendors_invited": [
+    "Shree Balaji Packaging",
+    "Ganesh Corrugators",
+    "PackWorld Exports",
+    "Sai Krupa Box Industries",
+    "Om Packaging Solutions"
+  ],
+  "lines": [
+    {
+      "line_id": "L01",
+      "description": "3-ply RSC box 300x200x150 mm",
+      "item_type": "RSC box",
+      "ply": 3,
+      "dimensions_mm": "300x200x150",
+      "weight_kg_per_pc": 0.206,
+      "annual_qty_pcs": 83500
+    },
+    {
+      "line_id": "L02",
+      "description": "3-ply RSC box 320x240x180 mm",
+      "item_type": "RSC box",
+      "ply": 3,
+      "dimensions_mm": "320x240x180",
+      "weight_kg_per_pc": 0.277,
+      "annual_qty_pcs": 76500
+    },
+    {
+      "line_id": "L03",
+      "description": "3-ply RSC box 350x250x200 mm",
+      "item_type": "RSC box",
+      "ply": 3,
+      "dimensions_mm": "350x250x200",
+      "weight_kg_per_pc": 0.318,
+      "annual_qty_pcs": 69600
+    },
+    {
+      "line_id": "L04",
+      "description": "3-ply RSC box 380x280x220 mm",
+      "item_type": "RSC box",
+      "ply": 3,
+      "dimensions_mm": "380x280x220",
+      "weight_kg_per_pc": 0.388,
+      "annual_qty_pcs": 62600
+    },
+    {
+      "line_id": "L05",
+      "description": "3-ply RSC box 400x300x250 mm",
+      "item_type": "RSC box",
+      "ply": 3,
+      "dimensions_mm": "400x300x250",
+      "weight_kg_per_pc": 0.453,
+      "annual_qty_pcs": 55700
+    },
+    {
+      "line_id": "L06",
+      "description": "3-ply RSC box 260x180x120 mm",
+      "item_type": "RSC box",
+      "ply": 3,
+      "dimensions_mm": "260x180x120",
+      "weight_kg_per_pc": 0.155,
+      "annual_qty_pcs": 97400
+    },
+    {
+      "line_id": "L07",
+      "description": "3-ply RSC box 230x160x100 mm",
+      "item_type": "RSC box",
+      "ply": 3,
+      "dimensions_mm": "230x160x100",
+      "weight_kg_per_pc": 0.119,
+      "annual_qty_pcs": 111300
+    },
+    {
+      "line_id": "L08",
+      "description": "3-ply RSC box 450x320x260 mm",
+      "item_type": "RSC box",
+      "ply": 3,
+      "dimensions_mm": "450x320x260",
+      "weight_kg_per_pc": 0.525,
+      "annual_qty_pcs": 41700
+    },
+    {
+      "line_id": "L09",
+      "description": "3-ply Die-cut mailer 310x220x80 mm",
+      "item_type": "Die-cut mailer",
+      "ply": 3,
+      "dimensions_mm": "310x220x80",
+      "weight_kg_per_pc": 0.142,
+      "annual_qty_pcs": 69600
+    },
+    {
+      "line_id": "L10",
+      "description": "3-ply Die-cut mailer 250x180x60 mm",
+      "item_type": "Die-cut mailer",
+      "ply": 3,
+      "dimensions_mm": "250x180x60",
+      "weight_kg_per_pc": 0.091,
+      "annual_qty_pcs": 90500
+    },
+    {
+      "line_id": "L11",
+      "description": "3-ply Partition set 390x290x210 mm",
+      "item_type": "Partition set",
+      "ply": 3,
+      "dimensions_mm": "390x290x210",
+      "weight_kg_per_pc": 0.194,
+      "annual_qty_pcs": 34800
+    },
+    {
+      "line_id": "L12",
+      "description": "3-ply RSC box 420x310x280 mm",
+      "item_type": "RSC box",
+      "ply": 3,
+      "dimensions_mm": "420x310x280",
+      "weight_kg_per_pc": 0.507,
+      "annual_qty_pcs": 48700
+    },
+    {
+      "line_id": "L13",
+      "description": "5-ply RSC box 400x300x300 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "400x300x300",
+      "weight_kg_per_pc": 0.838,
+      "annual_qty_pcs": 41700
+    },
+    {
+      "line_id": "L14",
+      "description": "5-ply RSC box 450x350x300 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "450x350x300",
+      "weight_kg_per_pc": 1.037,
+      "annual_qty_pcs": 39000
+    },
+    {
+      "line_id": "L15",
+      "description": "5-ply RSC box 500x400x350 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "500x400x350",
+      "weight_kg_per_pc": 1.347,
+      "annual_qty_pcs": 34800
+    },
+    {
+      "line_id": "L16",
+      "description": "5-ply RSC box 550x400x400 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "550x400x400",
+      "weight_kg_per_pc": 1.516,
+      "annual_qty_pcs": 27800
+    },
+    {
+      "line_id": "L17",
+      "description": "5-ply RSC box 600x400x400 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "600x400x400",
+      "weight_kg_per_pc": 1.596,
+      "annual_qty_pcs": 25000
+    },
+    {
+      "line_id": "L18",
+      "description": "5-ply RSC box 480x360x320 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "480x360x320",
+      "weight_kg_per_pc": 1.14,
+      "annual_qty_pcs": 36200
+    },
+    {
+      "line_id": "L19",
+      "description": "5-ply RSC box 520x420x380 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "520x420x380",
+      "weight_kg_per_pc": 1.5,
+      "annual_qty_pcs": 30600
+    },
+    {
+      "line_id": "L20",
+      "description": "5-ply RSC box 580x380x360 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "580x380x360",
+      "weight_kg_per_pc": 1.417,
+      "annual_qty_pcs": 26400
+    },
+    {
+      "line_id": "L21",
+      "description": "5-ply RSC box 620x450x420 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "620x450x420",
+      "weight_kg_per_pc": 1.857,
+      "annual_qty_pcs": 20900
+    },
+    {
+      "line_id": "L22",
+      "description": "5-ply RSC box 460x340x280 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "460x340x280",
+      "weight_kg_per_pc": 0.99,
+      "annual_qty_pcs": 37600
+    },
+    {
+      "line_id": "L23",
+      "description": "5-ply RSC box 530x430x330 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "530x430x330",
+      "weight_kg_per_pc": 1.456,
+      "annual_qty_pcs": 29200
+    },
+    {
+      "line_id": "L24",
+      "description": "5-ply RSC box 650x500x450 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "650x500x450",
+      "weight_kg_per_pc": 2.18,
+      "annual_qty_pcs": 16700
+    },
+    {
+      "line_id": "L25",
+      "description": "5-ply Corrugated pad 600x400 mm",
+      "item_type": "Corrugated pad",
+      "ply": 5,
+      "dimensions_mm": "600x400",
+      "weight_kg_per_pc": 0.228,
+      "annual_qty_pcs": 55700
+    },
+    {
+      "line_id": "L26",
+      "description": "5-ply Die-cut tray 440x330x120 mm",
+      "item_type": "Die-cut tray",
+      "ply": 5,
+      "dimensions_mm": "440x330x120",
+      "weight_kg_per_pc": 0.519,
+      "annual_qty_pcs": 33400
+    },
+    {
+      "line_id": "L27",
+      "description": "5-ply RSC box 700x500x500 mm",
+      "item_type": "RSC box",
+      "ply": 5,
+      "dimensions_mm": "700x500x500",
+      "weight_kg_per_pc": 2.394,
+      "annual_qty_pcs": 13900
+    },
+    {
+      "line_id": "L28",
+      "description": "7-ply Heavy-duty RSC box 800x600x600 mm",
+      "item_type": "Heavy-duty RSC box",
+      "ply": 7,
+      "dimensions_mm": "800x600x600",
+      "weight_kg_per_pc": 4.869,
+      "annual_qty_pcs": 8300
+    },
+    {
+      "line_id": "L29",
+      "description": "7-ply Heavy-duty RSC box 900x700x600 mm",
+      "item_type": "Heavy-duty RSC box",
+      "ply": 7,
+      "dimensions_mm": "900x700x600",
+      "weight_kg_per_pc": 6.028,
+      "annual_qty_pcs": 7000
+    },
+    {
+      "line_id": "L30",
+      "description": "7-ply Heavy-duty RSC box 1000x800x700 mm",
+      "item_type": "Heavy-duty RSC box",
+      "ply": 7,
+      "dimensions_mm": "1000x800x700",
+      "weight_kg_per_pc": 7.825,
+      "annual_qty_pcs": 5600
+    }
+  ]
+}
