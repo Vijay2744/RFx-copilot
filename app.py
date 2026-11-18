@@ -720,8 +720,8 @@ with right:
             if "analyst" not in ss or ss.get("analyst_sig") != sig:
                 prev = ss.analyst.messages if "analyst" in ss else None
                 ss.analyst = Analyst(tables)
-                if prev:
-                    ss.analyst.messages = prev
+                if prev:   # keep the conversation, but with the fresh system prompt and no broken tool calls
+                    ss.analyst.messages = ss.analyst.messages[:1] + Analyst.sanitize(prev[1:])
                 ss.analyst_sig = sig
             sugg = ["Split the award cheapest per line, only among vendors who passed the quality check. "
                     "How much does that save vs the best single vendor and vs last year?",
@@ -770,6 +770,10 @@ with right:
                     st.error("Add your OpenAI key in the sidebar.")
                 else:
                     with st.spinner("Analysing the extracted data…"):
-                        out = ss.analyst.ask(q_in)
+                        try:
+                            out = ss.analyst.ask(q_in)
+                        except Exception as e:
+                            out = dict(answer=f"I couldn't finish that one ({type(e).__name__}). Please ask again.",
+                                       steps=[])
                     ss.chat.append(dict(q=q_in, **out))
                     st.rerun()

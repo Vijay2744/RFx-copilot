@@ -119,9 +119,39 @@ class Analyst:
             out += "\n(figure created and shown to user)"
         return out[-6000:], result, fig, err
 
+    @staticmethod
+    def sanitize(messages):
+        """Drop half-finished tool exchanges (e.g. a question interrupted by a page rerun)."""
+        out, i = [], 0
+        while i < len(messages):
+            m = messages[i]
+            if m.get("role") == "assistant" and m.get("tool_calls"):
+                ids = {tc["id"] for tc in m["tool_calls"]}
+                j, replies = i + 1, []
+                while j < len(messages) and messages[j].get("role") == "tool":
+                    replies.append(messages[j]); j += 1
+                if ids == {r["tool_call_id"] for r in replies}:
+                    out += [m] + replies
+                i = j
+                continue
+            if m.get("role") != "tool":
+                out.append(m)
+            i += 1
+        return out
+
     def ask(self, question: str, max_steps: int = 12):
-        """Returns dict(answer, steps=[{code, output, result, fig, error}])"""
-        self.messages.append({"role": "user", "content": question})
+        """Returns dict(answer, steps=[{code, output, result, fig, error}]).
+        Works on a copy of the conversation and only commits it when the answer is complete,
+        so an interrupted question can never leave a broken history behind."""
+        committed = self.sanitize(self.messages)
+        self.messages = committed + [{"role": "user", "content": question}]
+        try:
+            return self._ask(max_steps)
+        except Exception:
+            self.messages = committed
+            raise
+
+    def _ask(self, max_steps):
         steps = []
         for _ in range(max_steps):
             resp = llm.chat_tools(self.messages, TOOLS)
