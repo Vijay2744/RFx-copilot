@@ -46,6 +46,14 @@ DATA (pandas DataFrames already loaded):
   discount_text, lines_quoted, lines_green, lines_amber, lines_red, flag_text
 - questionnaire: vendor, q_id, answer, value, source_snippet
 - last_year: vendor, line_id, price_inr_per_pc (last year's contract, incumbent Om Packaging)
+- my_award: the BUYER'S CURRENT award (may differ from the optimizer): line_id, description, qty, unit_price
+  (blended if split), value, best_price, extra_vs_best, status, changed (vs recommendation), options
+- my_po: purchase-order lines of the buyer's award: vendor, line_id, qty (allocated, splits included),
+  unit_price, value, status
+- my_award_total: net total of the buyer's award after conditional discounts (may be None)
+When the buyer says "my award" / "current award" / "what I have", use my_award / my_po. For what-ifs
+("drop Om", "split L05 70/30") compute from quotes (and optimize_award with eligible_vendors) and compare to
+my_award_total.
 
 HELPERS (deterministic, use them instead of re-implementing):
 - optimize_award(quotes, vendors, eligible_vendors=None, quality_only=False, max_vendor_share=None,

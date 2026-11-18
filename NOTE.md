@@ -35,6 +35,12 @@ so I built the trust layer.
    hinges on the incumbent's one-line per-kg email. **The action is to clarify with Om, then
    award**, and the tool drafts that email.
 
+8. **The optimizer proposes; the buyer decides.** The buyer can change any line's vendor, split a line
+   between two vendors by %, untick a vendor to replace them, and lock lines while re-optimizing the rest.
+   Every change is priced live against the recommendation and needs a one-line reason before export. Buyers
+   have context the data doesn't (capacity, relationships, supply security), and a tool that only offers
+   "accept the machine's answer" doesn't get used.
+
 ## The better problem (what I'd tell you I found)
 
 Extraction is becoming a commodity; every frontier model can read a PDF. Two things aren't:

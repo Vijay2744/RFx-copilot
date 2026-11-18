@@ -169,6 +169,199 @@ def safe_sensitivity(pct, **kw):
         return dict(verdict=f"Stress test couldn't run: {e}", regret=0.0, amber_by_vendor={}, lines_changed=pd.DataFrame())
 
 
+# ------------------------------------------------------------------ award plan (buyer-controlled)
+from core import award as AW  # noqa: E402
+
+COLMAP = {"Vendor": "vendor_1", "Share %": "pct_1", "2nd vendor": "vendor_2", "Lock": "locked", "Reason": "reason"}
+
+
+def award_state():
+    """Keep the buyer's plan in session; (re)build it when the data or the vendor set changes."""
+    vlist = sorted(quotes.vendor.unique())
+    for v in vlist:
+        ss.setdefault(f"en_{v}", bool((vendors.vendor == v).any() and vendors.set_index("vendor").quality[v] == "pass"))
+    enabled = [v for v in vlist if ss[f"en_{v}"]]
+    default_enabled = [v for v in vlist if vendors.set_index("vendor").quality[v] == "pass"] or vlist
+    sys_plan, sys_res = AW.recommended_plan(quotes, vendors, default_enabled)
+    rec_plan, _ = AW.recommended_plan(quotes, vendors, enabled) if enabled else (sys_plan, sys_res)
+    sig = (len(quotes), json.dumps(ss.overrides, sort_keys=True), ss.fx, ss.frt, ss.fob)
+    ss.setdefault("ed_ver", 0)
+    if "plan" not in ss or ss.get("plan_sig") != sig:
+        ss.plan, ss.plan_sig = rec_plan.copy(), sig
+    mode = ss.pop("replan", None)
+    if mode == "replace":
+        # only the lines of a removed vendor move; every other choice the buyer made stays
+        cur = AW.clean(ss.plan)
+        cur.loc[~cur.vendor_2.isin(enabled + [AW.NONE]), ["vendor_2", "pct_1"]] = [AW.NONE, 100]
+        keep_mask = cur.vendor_1.isin(enabled)
+        tmp = cur.assign(locked=keep_mask)
+        new_plan = AW.recommended_plan(quotes, vendors, enabled, tmp)[0] if enabled else cur
+        new_plan["locked"] = new_plan.line_id.map(dict(zip(cur.line_id, cur.locked))).fillna(False)
+        moved = sorted(set(cur.line_id[~keep_mask]))
+        ss.plan, ss.moved_msg = new_plan, (f"Moved {len(moved)} line(s) to the next-best vendor: {', '.join(moved[:10])}"
+                                           if moved else "")
+        ss.ed_ver += 1
+    elif mode == "reopt":
+        ss.plan = AW.recommended_plan(quotes, vendors, enabled, ss.plan)[0]
+        ss.ed_ver += 1
+    ss.plan = AW.clean(ss.plan)
+    return vlist, enabled, default_enabled, sys_plan, rec_plan
+
+
+def on_vendor_toggle():
+    ss.replan = "replace"          # replacement: lines of a removed vendor move to the next best
+
+
+def apply_edits(key):
+    ed = ss.get(key, {}).get("edited_rows", {})
+    plan = ss.plan.copy()
+    for ri, changes in ed.items():
+        for col, val in changes.items():
+            if col in COLMAP:
+                plan.at[int(ri), COLMAP[col]] = val
+    ss.plan = AW.clean(plan)
+    ss.ed_ver += 1
+
+
+def reset_plan(plan):
+    ss.plan = plan.copy()
+    ss.ed_ver += 1
+
+
+def reoptimize():
+    ss.replan = "reopt"
+
+
+def render_award():
+    vlist, enabled, default_enabled, sys_plan, rec_plan = award_state()
+    ev = AW.evaluate(ss.plan, quotes, vendors, rfx_lines, rec_plan, enabled)
+    sys_ev = AW.evaluate(sys_plan, quotes, vendors, rfx_lines, sys_plan, default_enabled)
+    ss.award_eval = ev
+    lyc = A.last_year_cost(rfx_lines, last_year)
+    vi = vendors.set_index("vendor")
+
+    diff = ev["total"] - sys_ev["total"]
+    tone = "ok" if ev["n_red"] == 0 else "warn"
+    st.markdown(
+        f"<div class='banner {tone}'><b>Your award: {A.fmt_inr(ev['total'])} · "
+        f"{(1 - ev['total'] / lyc) * 100:.1f}% below last year ({A.fmt_inr(lyc)})</b><br>"
+        f"System recommendation (quality-passed vendors, cheapest per line, discounts counted): "
+        f"{A.fmt_inr(sys_ev['total'])}. "
+        f"{'Your choices match it.' if abs(diff) < 1 else ('Your choices cost ' + A.fmt_inr(diff) + ' more.' if diff > 0 else 'Your choices save ' + A.fmt_inr(-diff) + '.')}"
+        f"</div>", unsafe_allow_html=True)
+
+    m = st.columns(4)
+    m[0].metric("Lines you changed", ev["n_changed"], f"{int((ss.plan.vendor_2 != AW.NONE).sum())} split orders",
+                delta_color="off")
+    m[1].metric("Conditional discounts earned", A.fmt_inr(ev["discounts"]))
+    m[2].metric("Value resting on assumptions", A.fmt_inr(ev["amber_value"]),
+                f"+{A.fmt_inr(ev['exposure_10pct'])} if 10% off", delta_color="off")
+    m[3].metric("Blocked lines in award", ev["n_red"], "must be 0 to sign off", delta_color="off")
+
+    st.markdown("**1 · Which vendors are in this award?** Untick a vendor to replace them: their lines move to the "
+                "next-best vendor automatically.")
+    tc = st.columns(len(vlist))
+    for col, v in zip(tc, vlist):
+        q = vi.quality[v]
+        tag = {"pass": "quality ✓", "fail": "quality ✗"}.get(q, "quality ?")
+        col.checkbox(f"{' '.join(v.title().split()[:2])} ({tag})", key=f"en_{v}", on_change=on_vendor_toggle)
+    if ss.get("moved_msg"):
+        st.info(ss.pop("moved_msg"))
+    off_bad = [v for v in enabled if vi.quality[v] != "pass"]
+    if off_bad:
+        st.warning(f"You've included {', '.join(off_bad)}, which didn't pass the quality check. Give a reason on "
+                   f"their lines.")
+
+    st.markdown("**2 · Line by line.** Change the vendor on any line, or pick a 2nd vendor and a share to split the "
+                "order. Lock lines you've decided, then re-optimize the rest.")
+    b = st.columns([1, 1, 2])
+    b[0].button("Re-optimize unlocked lines", on_click=reoptimize, width="stretch")
+    b[1].button("Reset to recommendation", on_click=reset_plan, args=(rec_plan,), width="stretch")
+
+    L = ev["lines"].set_index("line_id")
+    disp = pd.DataFrame({
+        "Line": ss.plan.line_id,
+        "Item": ss.plan.line_id.map(L.description),
+        "Qty": ss.plan.line_id.map(L.qty),
+        "Vendor": ss.plan.vendor_1,
+        "Share %": ss.plan.pct_1,
+        "2nd vendor": ss.plan.vendor_2,
+        "Unit ₹": ss.plan.line_id.map(L.unit_price).round(2),
+        "Line value ₹": ss.plan.line_id.map(L.value).round(0),
+        "Extra vs cheapest ₹": ss.plan.line_id.map(L.extra_vs_best).round(0),
+        "Status": ss.plan.line_id.map(lambda l: ("🔴 " + L.problem[l]) if L.status[l] == "red"
+                                       else ICON.get(L.status[l], "") + (" changed" if L.changed[l] else "")),
+        "Lock": ss.plan.locked,
+        "Reason": ss.plan.reason,
+        "All usable prices": ss.plan.line_id.map(L.options),
+    })
+    key = f"award_ed_{ss.ed_ver}"
+    opts = [AW.NONE] + enabled
+    st.data_editor(
+        disp, key=key, on_change=apply_edits, args=(key,), hide_index=True, width="stretch", height=460,
+        disabled=["Line", "Item", "Qty", "Unit ₹", "Line value ₹", "Extra vs cheapest ₹", "Status", "All usable prices"],
+        column_config={
+            "Vendor": st.column_config.SelectboxColumn(options=enabled, required=True, width="medium"),
+            "Share %": st.column_config.NumberColumn(min_value=1, max_value=100, step=5,
+                                                     help="Share of this line's quantity going to the first vendor"),
+            "2nd vendor": st.column_config.SelectboxColumn(options=opts, width="medium",
+                                                           help="Pick a second vendor to split the order"),
+            "Unit ₹": st.column_config.NumberColumn(format="₹%.2f"),
+            "Line value ₹": st.column_config.NumberColumn(format="₹%d"),
+            "Extra vs cheapest ₹": st.column_config.NumberColumn(format="₹%d",
+                                                                 help="What this choice costs over the cheapest usable quote"),
+            "Lock": st.column_config.CheckboxColumn(help="Keep this line as is when re-optimizing"),
+            "Reason": st.column_config.TextColumn(help="Required when you differ from the recommendation", width="medium"),
+            "All usable prices": st.column_config.TextColumn(width="large"),
+        })
+
+    st.markdown("**3 · Purchase orders this creates**")
+    if not ev["by_vendor"].empty:
+        st.dataframe(ev["by_vendor"].assign(value=lambda d_: d_.value.map(A.fmt_inr),
+                                            net_value=lambda d_: d_.net_value.map(A.fmt_inr),
+                                            discount_inr=lambda d_: d_.discount_inr.map(A.fmt_inr))
+                     .rename(columns={"vendor": "Vendor", "lines": "PO lines", "value": "Order value",
+                                      "share_pct": "Share %", "discount_inr": "Discount", "net_value": "Net",
+                                      "note": "Note"}), hide_index=True, width="stretch")
+    sv_ = A.best_single_vendor(quotes, vendors, quality_only=True)
+    full = sv_[sv_.covers_all]
+    if not full.empty:
+        st.caption(f"For reference: giving everything to the best single vendor ({full.iloc[0].vendor}) would cost "
+                   f"{A.fmt_inr(full.iloc[0].net_value)}.")
+
+    st.markdown("**4 · Sign off**")
+    blockers = []
+    if ev["n_red"]:
+        blockers.append(f"{ev['n_red']} line(s) are awarded to a vendor with no usable quote")
+    if ev["missing_reasons"]:
+        blockers.append(f"give a reason for the lines you changed: {', '.join(ev['missing_reasons'][:8])}")
+    ack = True
+    if ev["n_amber"]:
+        ack = st.checkbox(f"I've reviewed the {ev['n_amber']} awarded lines whose prices rest on assumptions "
+                          f"({A.fmt_inr(ev['amber_value'])}), or sent clarifications.")
+        if not ack:
+            blockers.append("acknowledge the assumption-based prices")
+    for b_ in blockers:
+        st.caption(f"🔒 To export: {b_}.")
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as xw:
+        pd.DataFrame([{"rfx": rfx["rfx_id"], "generated": datetime.now().isoformat(timespec="seconds"),
+                       "award_total_net": ev["total"], "system_recommendation": sys_ev["total"],
+                       "last_year": lyc, "discounts": ev["discounts"], "vendors_in_award": ", ".join(enabled),
+                       "value_on_assumptions": ev["amber_value"], "fx_usd_inr": ss.fx,
+                       "freight_extra_pct": ss.frt, "fob_pct": ss.fob, "assumptions_acknowledged": ack}]).T \
+            .to_excel(xw, sheet_name="Summary")
+        ev["po"].to_excel(xw, sheet_name="Purchase order lines", index=False)
+        ev["by_vendor"].to_excel(xw, sheet_name="By vendor", index=False)
+        ev["lines"].merge(ss.plan, on="line_id").to_excel(xw, sheet_name="Award by line", index=False)
+        quotes.drop(columns=["flag_list"]).to_excel(xw, sheet_name="Audit trail", index=False)
+        vendors.drop(columns=["flag_list"]).to_excel(xw, sheet_name="Vendors", index=False)
+        pd.DataFrame([{"cell": k_, **v_} for k_, v_ in ss.overrides.items()]).to_excel(
+            xw, sheet_name="Buyer decisions", index=False)
+    st.download_button("Export award pack (POs, award by line, full audit trail)", buf.getvalue(),
+                       f"{rfx['rfx_id']}_award.xlsx", disabled=bool(blockers), type="primary")
+
+
 # ------------------------------------------------------------------ sidebar: setup only
 with st.sidebar:
     st.markdown("**Setup**")
@@ -480,72 +673,9 @@ with left:
                 st.markdown("**Questionnaire answers and documents, same vendors**")
                 st.dataframe(pd.DataFrame(side).T[vcols].astype(str), width="stretch", height=330)
 
-            # ---------------- award and sign-off ------------------------------------------
+            # ---------------- award and sign-off: the buyer decides -----------------------
             else:
-                lyc = A.last_year_cost(rfx_lines, last_year)
-                with st.expander("Award rules", expanded=False):
-                    c1, c2, c3, c4, c5 = st.columns(5)
-                    qo = c1.checkbox("Quality-passed only", value=True)
-                    cap = c2.slider("Max share per vendor %", 0, 100, 0, 5, help="0 = no cap") / 100 or None
-                    mv = c3.number_input("Max vendors (0 = any)", 0, 5, 0) or None
-                    da = c4.checkbox("Count conditional discounts", value=True)
-                    stress = c5.slider("Stress test ±%", 0, 25, 10) / 100
-                kw = dict(quality_only=qo, max_vendor_share=cap, max_vendors=mv, discount_aware=da)
-                res = A.optimize_award(quotes, vendors, **kw)
-                if res["status"] != "optimal":
-                    st.error(f"No award possible with these rules: {res['status']}")
-                else:
-                    sens = safe_sensitivity(stress, **kw) if stress else None
-                    robust = sens is None or sens["verdict"].startswith("ROBUST")
-                    st.markdown(f"<div class='banner {'ok' if robust else 'warn'}'><b>Recommended award: "
-                                f"{A.fmt_inr(res['total'])}, {(1 - res['total'] / lyc) * 100:.1f}% below last year "
-                                f"({A.fmt_inr(lyc)})</b><br>{sens['verdict'] if sens else ''}</div>",
-                                unsafe_allow_html=True)
-                    sv_ = A.best_single_vendor(quotes, vendors, quality_only=qo)
-                    full = sv_[sv_.covers_all]
-                    m = st.columns(3)
-                    if not full.empty:
-                        m[0].metric(f"Best single vendor ({full.iloc[0].vendor})", A.fmt_inr(full.iloc[0].net_value),
-                                    f"split saves {A.fmt_inr(full.iloc[0].net_value - res['total'])}", delta_color="off")
-                    m[1].metric("Hidden discounts captured", A.fmt_inr(res["discounts"]))
-                    m[2].metric("Lines awarded", f"{len(res['award'])} of {len(rfx_lines)}")
-                    if res["unawarded"]:
-                        st.error(f"No acceptable quote for {', '.join(res['unawarded'])}. Resolve those in Comparison.")
-                    st.dataframe(res["by_vendor"].assign(value=lambda d_: d_.value.map(A.fmt_inr),
-                                                         net_value=lambda d_: d_.net_value.map(A.fmt_inr),
-                                                         discount_inr=lambda d_: d_.discount_inr.map(A.fmt_inr))
-                                 .rename(columns={"vendor": "Vendor", "lines": "Lines", "value": "Value",
-                                                  "share_pct": "Share %", "discount_inr": "Discount",
-                                                  "net_value": "Net", "note": "Note"}), hide_index=True, width="stretch")
-                    aw = res["award"]
-                    st.dataframe(aw.style.apply(lambda c: [f"background-color: {COLORS.get(x, '')}" for x in c],
-                                                subset=["status"]).format({"unit_price": "₹{:,.2f}", "value": "₹{:,.0f}",
-                                                                           "qty": "{:,}"}),
-                                 hide_index=True, width="stretch", height=300)
-                    n_amber, n_red = int((aw.status == "amber").sum()), int((aw.status == "red").sum())
-                    ack = True
-                    if n_amber:
-                        ack = st.checkbox(f"I've reviewed the {n_amber} awarded prices that rest on assumptions, "
-                                          f"or sent clarifications.")
-                    gate_ok = n_red == 0 and ack and not res["unawarded"]
-                    if not gate_ok:
-                        st.caption("🔒 Export unlocks when nothing blocked is awarded, every line has a quote, and "
-                                   "assumptions are acknowledged.")
-                    buf = io.BytesIO()
-                    with pd.ExcelWriter(buf, engine="openpyxl") as xw:
-                        pd.DataFrame([{"rfx": rfx["rfx_id"], "generated": datetime.now().isoformat(timespec="seconds"),
-                                       "rules": json.dumps(kw), "award_total_net": res["total"], "last_year": lyc,
-                                       "stress_test": sens["verdict"] if sens else "", "fx_usd_inr": ss.fx,
-                                       "freight_extra_pct": ss.frt, "fob_pct": ss.fob,
-                                       "assumptions_acknowledged": ack}]).T.to_excel(xw, sheet_name="Summary")
-                        aw.to_excel(xw, sheet_name="Award", index=False)
-                        res["by_vendor"].to_excel(xw, sheet_name="By vendor", index=False)
-                        quotes.drop(columns=["flag_list"]).to_excel(xw, sheet_name="Audit trail", index=False)
-                        vendors.drop(columns=["flag_list"]).to_excel(xw, sheet_name="Vendors", index=False)
-                        pd.DataFrame([{"cell": k_, **v_} for k_, v_ in ss.overrides.items()]).to_excel(
-                            xw, sheet_name="Buyer decisions", index=False)
-                    st.download_button("Export award pack (Excel, full audit trail)", buf.getvalue(),
-                                       f"{rfx['rfx_id']}_award.xlsx", disabled=not gate_ok, type="primary")
+                render_award()
 
 # =========================================================== RIGHT: conversation ========
 with right:
@@ -577,9 +707,14 @@ with right:
             st.info("Once the replies are read, ask anything here: comparisons, splits, risks, what-ifs.")
         else:
             from core.analyst import Analyst
+            aw_ev = ss.get("award_eval")
             tables = dict(quotes=quotes.drop(columns=["flag_list"]), vendors=vendors.drop(columns=["flag_list"]),
-                          questionnaire=questionnaire, rfx_lines=rfx_lines, last_year=last_year)
-            sig = (len(quotes), json.dumps(ss.overrides), ss.fx, ss.frt, ss.fob)
+                          questionnaire=questionnaire, rfx_lines=rfx_lines, last_year=last_year,
+                          my_award=aw_ev["lines"] if aw_ev else pd.DataFrame(),
+                          my_po=aw_ev["po"] if aw_ev else pd.DataFrame(),
+                          my_award_total=aw_ev["total"] if aw_ev else None)
+            sig = (len(quotes), json.dumps(ss.overrides), ss.fx, ss.frt, ss.fob,
+                   json.dumps(ss.plan.to_dict("records")) if "plan" in ss else "")
             if "analyst" not in ss or ss.get("analyst_sig") != sig:
                 prev = ss.analyst.messages if "analyst" in ss else None
                 ss.analyst = Analyst(tables)
