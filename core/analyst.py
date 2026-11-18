@@ -84,7 +84,12 @@ class Analyst:
                    "optimize_award": A.optimize_award, "best_single_vendor": A.best_single_vendor,
                    "sensitivity": A.sensitivity, "evaluate_award": A.evaluate_award,
                    "last_year_cost": A.last_year_cost, "fmt_inr": A.fmt_inr}
-        self.messages = [{"role": "system", "content": SYSTEM}]
+        names = sorted(tables["quotes"].vendor.unique()) if "quotes" in tables and len(tables["quotes"]) else []
+        ctx = ("\nEXACT VENDOR NAMES (use these strings exactly, or match case-insensitively with "
+               "str.contains on a distinctive word): " + "; ".join(names) +
+               "\nLINE IDS: L01..L30. Comparison column: landed_inr. Usable prices: status in "
+               "['green','amber','verified'].")
+        self.messages = [{"role": "system", "content": SYSTEM + ctx}]
 
     def _run(self, code: str):
         self.ns.pop("result", None)
@@ -101,7 +106,11 @@ class Analyst:
         if err:
             out += "\nERROR:\n" + err
         if isinstance(result, pd.DataFrame):
-            out += "\nresult (DataFrame):\n" + result.head(40).to_string(max_colwidth=60)
+            if result.empty:
+                out += ("\nresult is an EMPTY DataFrame. Your filter matched nothing: check vendor names "
+                        "(exact strings above), column names, and status values before trying again.")
+            else:
+                out += "\nresult (DataFrame):\n" + result.head(40).to_string(max_colwidth=60)
         elif isinstance(result, dict):
             out += "\nresult (dict keys): " + ", ".join(result.keys())
         elif result is not None:
@@ -110,7 +119,7 @@ class Analyst:
             out += "\n(figure created and shown to user)"
         return out[-6000:], result, fig, err
 
-    def ask(self, question: str, max_steps: int = 8):
+    def ask(self, question: str, max_steps: int = 12):
         """Returns dict(answer, steps=[{code, output, result, fig, error}])"""
         self.messages.append({"role": "user", "content": question})
         steps = []
@@ -130,4 +139,11 @@ class Analyst:
                 out, result, fig, err = self._run(code)
                 steps.append(dict(code=code, output=out, result=result, fig=fig, error=err))
                 self.messages.append({"role": "tool", "tool_call_id": tc.id, "content": out})
-        return dict(answer="I hit my step limit before finishing. Try narrowing the question.", steps=steps)
+        # out of steps: answer from what was computed, never from memory
+        self.messages.append({"role": "user", "content": "Stop running code. Answer the question now using ONLY "
+                              "numbers that appeared in the tool outputs above. If something couldn't be "
+                              "computed, say what and why in one line."})
+        final = llm.chat_text(self.messages)
+        self.messages.append({"role": "assistant", "content": final})
+        steps = [s_ for s_ in steps if not (isinstance(s_["result"], pd.DataFrame) and s_["result"].empty)]
+        return dict(answer=final, steps=steps)

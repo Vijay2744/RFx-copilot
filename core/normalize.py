@@ -57,6 +57,20 @@ def _dims(text: str):
     return out
 
 
+def canonical_vendor(raw: str, folder_key: str, invited: list[str]) -> str:
+    """Map whatever name the vendor used ('SHREE BALAJI PACKAGING PVT LTD') to the name we invited them by."""
+    def toks(x):
+        return {t for t in re.split(r"[^a-z]+", (x or "").lower()) if len(t) >= 2 and t not in
+                {"pvt", "ltd", "llp", "the", "and", "industries", "solutions", "packaging", "exports"}}
+    cand = toks(raw) | toks(folder_key)
+    best, score = None, 0
+    for name in invited:
+        sc = len(toks(name) & cand)
+        if sc > score:
+            best, score = name, sc
+    return best or (raw or folder_key).title()
+
+
 def inr(x):
     return "—" if x is None or pd.isna(x) else f"₹{x:,.2f}"
 
@@ -68,7 +82,7 @@ def normalize(rfx: dict, last_year: pd.DataFrame, extractions: dict, settings: S
     rows, vendor_rows, q_rows = [], [], []
 
     for key, ex in extractions.items():
-        vname = ex.get("vendor_name") or key
+        vname = canonical_vendor(ex.get("vendor_name") or key, key, rfx.get("vendors_invited", []))
         d = ex.get("document_defaults", {}) or {}
         quoted = {}
         for q in ex.get("line_quotes", []) or []:

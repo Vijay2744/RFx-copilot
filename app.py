@@ -746,7 +746,7 @@ with right:
                     for j, stp in enumerate(turn["steps"]):
                         if stp["fig"] is not None:
                             st.plotly_chart(stp["fig"], width="stretch", key=f"fig{i}_{j}")
-                        if isinstance(stp["result"], pd.DataFrame):
+                        if isinstance(stp["result"], pd.DataFrame) and not stp["result"].empty:
                             st.dataframe(stp["result"], hide_index=True, width="stretch")
                             tbls.append(stp["result"])
                     if tbls:
