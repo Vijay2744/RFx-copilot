@@ -38,7 +38,9 @@ st.set_page_config(page_title="RFx Co-pilot", page_icon="📦", layout="wide", i
 st.markdown("""
 <style>
 [data-testid="stToolbar"], [data-testid="stDecoration"] {display:none;}
-.block-container {padding-top: 1.2rem; max-width: 1500px;}
+header[data-testid="stHeader"] {background: transparent; height: 2.2rem;}
+.block-container {padding-top: 3rem; max-width: 1500px;}
+.card, .card h4, .card .find {color:#1f1f1c;}
 .banner {border-radius: 10px; padding: 10px 14px; margin: 0 0 10px;}
 .banner b {font-size: 1.02rem;}
 .banner.warn {background:#FFF6E0; border:1px solid #F0C36D; color:#5C4000;}
