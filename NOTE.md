@@ -1,72 +1,46 @@
 # One-page note: what I decided, and what I left out
 
-**Problem, restated.** Retyping quotes is the symptom. The real problem is that buyers can't
-**trust or compare** messy quotes fast enough to make a **defensible** award. So they fall back
-to "give it all to the usual vendor", and the savings from a smarter split never happen. On a
-₹4 Cr event, a quality-gated split on correctly normalized data is worth roughly 2–5%
-(₹8–20 L), an order of magnitude more than the 3 days of retyping. **Savings depend on trust**,
-so I built the trust layer.
+**The problem, restated.** Retyping quotes is the symptom. The real problem is that a buyer can't trust or
+compare messy quotes fast enough to make a defensible award, so they fall back to "give it all to the usual
+vendor" and the savings of a smarter split never happen. **Savings depend on trust**, so I built the trust
+layer, and kept the final decision with the buyer.
 
-## Decisions
+## What I decided
 
-1. **The LLM reads; deterministic code calculates.** The model copies each price exactly as
-   written, with its unit, currency, tax and freight basis. Every conversion (÷100, × kg/pc,
-   × FX, ÷1.18, + freight) runs in code and is shown as a chain the buyer can read. Wrong
-   arithmetic is the one mistake a buyer never forgives.
-2. **Three states, defined by checks.** 🔴 means it can't be awarded: not quoted, spec deviation,
-   dimension mismatch, more than 2.5× off the peer median, or a claim that contradicts the
-   evidence. 🟠 means usable but resting on an assumption: per-kg conversion, FX, a freight
-   estimate, a price inferred from last year, a low-confidence reading of the photo. 🟢 means
-   everything else. I did **not** use model self-reported confidence scores.
-3. **Maker-checker, borrowed from banking.** The AI is the maker, the buyer is the checker.
-   Every cell links to its source. The buyer can accept, edit or exclude, and every action is
-   logged. The award export stays locked while any 🔴 line is awarded or 🟠 assumptions haven't
-   been acknowledged.
-4. **Evidence beats claims.** PackWorld says "ISO certified". The attached certificate expired
-   in 2025. The quality gate reads the attachment, not the claim.
-5. **The analyst writes code, not numbers.** The VP's question ("split cheapest per line, only
-   vendors who cleared quality") is a constrained optimization. It runs as a MILP, not in the
-   model's head, and every answer has a "show the work" panel.
-6. **Real procurement nuance in the optimizer.** It models Ganesh's footnote discount
-   (4% above ₹50 L). A naive cheapest-per-line split misses it. The discount-aware award captures
-   it.
-7. **A stress test in money, not vibes.** "If every amber assumption is 10% wrong against us,
-   how much cheaper would another award have been?" In the demo, the answer is that the award
-   hinges on the incumbent's one-line per-kg email. **The action is to clarify with Om, then
-   award**, and the tool drafts that email.
+1. **The AI reads; code calculates.** The model copies every price exactly as written (unit, currency, GST,
+   freight) with where it found it. All conversion to ₹ per piece, ex-GST, delivered is plain code, shown as
+   step-by-step working. Silent arithmetic errors are the one mistake a buyer never forgives.
+2. **Confidence comes from checks, not the model's opinion.** Red = blocked (not quoted, wrong spec, wrong
+   size, 2.5× off other vendors, a claim contradicted by its own attachment). Amber = rests on a stated
+   assumption (per-kg weight, exchange rate, freight estimate, "same as last year", an unclear photo row).
+   Green = everything else. Dozens of ambers are grouped into about a dozen plain-English issues.
+3. **Maker-checker, from banking.** Every price links to its source; the buyer accepts, corrects or
+   excludes it, and every decision is logged.
+4. **Evidence beats claims.** One vendor says it's ISO certified; its attached certificate expired in 2025,
+   so it fails the quality check even though it's the cheapest.
+5. **The analyst writes code, not numbers.** Questions in plain English are answered by code run on the
+   extracted data, with "show the work" on every answer.
+6. **The optimizer proposes; the buyer decides.** The recommendation models real terms (a 4% discount only
+   above ₹50 L). The buyer can split a line between vendors, replace a vendor, or lock lines, with every
+   change priced live and a reason recorded. Export stays locked until blocked items and assumptions are
+   dealt with.
 
-8. **The optimizer proposes; the buyer decides.** The buyer can change any line's vendor, split a line
-   between two vendors by %, untick a vendor to replace them, and lock lines while re-optimizing the rest.
-   Every change is priced live against the recommendation and needs a one-line reason before export. Buyers
-   have context the data doesn't (capacity, relationships, supply security), and a tool that only offers
-   "accept the machine's answer" doesn't get used.
+## The better problem
 
-## The better problem (what I'd tell you I found)
-
-Extraction is becoming a commodity; every frontier model can read a PDF. Two things aren't:
-
-- **Upstream: a vague RFx produces vague quotes.** Most normalization pain is created when the
-  RFx goes out without one fixed unit, freight term and GST basis. The co-pilot blocks "ready to
-  send" until these are explicit. Fixing the RFx removes flags before they exist.
-- **Downstream: the bottleneck is the back-and-forth with vendors, not the reading.** Of the
-  9-day cycle, most is spent waiting on clarifications. Flagging is passive; the system should
-  close the loop by drafting the question, sending it and re-ingesting the reply. I built the
-  draft step. Auto-send and re-ingest are next.
+Reading quotes is becoming a commodity. The harder problems sit around it. **Upstream:** a vague RFx creates
+vague quotes, so the co-pilot won't mark an RFx ready until unit, currency, GST, freight and the quality check
+are explicit. **Downstream:** most of the nine days goes on chasing vendors for clarifications. The prototype
+drafts every clarification; sending them and re-reading the replies automatically is the next build.
 
 ## Deliberately left out
 
-- Real SMTP/IMAP (stubbed to `cache/outbox/`), auth, a database, multi-user roles.
-- Bounding-box highlighting on the photo. I show the photo and the row reference instead.
-- A second independent extraction pass for cross-checking. It's the next trust upgrade (two
-  reads agree means green), and I cut it for time and cost.
-- Live FX and freight feeds. These are buyer-owned settings, deliberately visible.
-- Negotiation automation. The analyst can draft a negotiation note; it doesn't negotiate.
-- Total cost of ownership (payment-term cost of money, lead-time risk). I show the terms side by
-  side but don't price them yet.
+- Real email in and out, login, a database (the brief allowed stubbing the plumbing).
+- Boxes drawn on the photo: the photo plus the row reference is enough to check a number.
+- A second, independent AI read to cross-check prices: the next trust upgrade, cut for time.
+- Pricing payment terms and lead time into total cost: shown side by side, not yet converted to rupees.
 
 ## How I'd measure it
 
-North star: **time from the last vendor reply to a defensible award**. Guardrails: the share of
-quote lines that land without retyping and stay unedited (extraction precision), the buyer
-override rate, the share of awarded value resting on 🟠 assumptions at sign-off, and savings
-versus best single vendor and versus last year.
+North star: **time from the last vendor reply to a defensible award.** Also: share of prices that need no
+correction, buyer override rate, share of award value resting on assumptions at sign-off, and savings versus
+the best single vendor and last year.
