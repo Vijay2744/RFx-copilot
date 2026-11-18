@@ -391,14 +391,21 @@ with st.sidebar:
         ss.overrides = {}; save_overrides(); st.rerun()
 
 # ------------------------------------------------------------------ header + progress strip
-st.markdown(f"#### 📦 {rfx['title']}  \n<span class='muted'>{rfx['rfx_id']} · {len(rfx_lines)} line items · "
-            f"{len(folders)} vendors · due {rfx['due_date']}</span>", unsafe_allow_html=True)
+due = datetime.strptime(rfx["due_date"], "%Y-%m-%d").strftime("%d %b %Y")
+st.markdown(
+    f"<div style='display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:8px'>"
+    f"<div><div style='font-size:1.5rem; font-weight:600; line-height:1.2'>📦 RFx Co-pilot</div>"
+    f"<div class='muted' style='font-size:0.95rem'>Read every vendor quote, whatever the format · compare on one basis · "
+    f"decide with confidence</div></div>"
+    f"<div style='text-align:right; font-size:0.85rem; color:#444'><b>{rfx['rfx_id']}</b> · Corrugated packaging, "
+    f"annual contract<br>{len(rfx_lines)} line items · {len(folders)} vendors · replies due {due}</div></div>",
+    unsafe_allow_html=True)
 drafted = ss.copilot_draft is not None or ss.sent
 n_read = len(extractions)
 steps = [("draft", f"{'✅' if drafted else '①'} RFx drafted", "draft"),
          ("send", f"{'✅' if ss.sent else '②'} Sent to {len(folders)} vendors", "draft"),
          ("replies", f"{'✅' if n_read == len(folders) else '③'} Replies read ({n_read}/{len(folders)})", "replies"),
-         ("compare", f"{'✅' if ready else '④'} Compare and decide", "compare")]
+         ("compare", "④ Compare and decide", "compare")]
 sc = st.columns(4)
 for col, (key, label, target) in zip(sc, steps):
     col.button(label, key=f"step_{key}", on_click=set_view, args=(target,),
