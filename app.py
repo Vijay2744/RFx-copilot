@@ -25,6 +25,14 @@ from core import extract as X
 from core import llm
 from core.normalize import Settings, normalize, inr
 
+# Streamlit Community Cloud: the key lives in the app's Secrets, not in a .env file
+try:
+    for _k in ("OPENAI_API_KEY", "OPENAI_MODEL"):
+        if _k in st.secrets and not os.getenv(_k):
+            os.environ[_k] = str(st.secrets[_k])
+except Exception:
+    pass
+
 ROOT = Path(__file__).parent
 DATA = ROOT / "data"
 RESP = DATA / "vendor_responses"

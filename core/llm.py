@@ -10,6 +10,10 @@ load_dotenv()
 DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1")
 
 
+def _model():
+    return os.getenv("OPENAI_MODEL") or DEFAULT_MODEL
+
+
 def get_client() -> OpenAI:
     return OpenAI()  # reads OPENAI_API_KEY from env / .env
 
