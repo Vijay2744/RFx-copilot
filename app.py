@@ -356,16 +356,22 @@ with left:
                         out.loc[best == v, v] += "; font-weight: 700; border: 2px solid #2e7d32"
                     return out
 
+                short = {v: " ".join(v.title().split()[:2]) for v in vcols}   # "Shree Balaji", "Om Packaging"
+                back = {sv_: v for v, sv_ in short.items()}
+                grid.index.name = "Line"
                 styled = grid.style.apply(style, axis=None).format(
                     {**{v: (lambda x: "not quoted" if pd.isna(x) else f"₹{x:,.2f}") for v in vcols},
-                     "Last year": "₹{:,.2f}", "Qty": "{:,}"})
+                     "Last year": "₹{:,.2f}", "Qty": "{:,}"}).relabel_index(
+                    ["Item", "Qty", "Last year"] + [short[v] for v in vcols], axis=1)
                 try:
                     ev = st.dataframe(styled, height=430, width="stretch", on_select="rerun",
-                                      selection_mode="single-cell", key="grid")
+                                      selection_mode="single-cell", key="grid",
+                                      column_config={"Item": st.column_config.TextColumn(width="medium")})
                     cells = ev.selection.get("cells", []) if ev else []
                     if cells:
                         rpos, col = cells[0]
                         sig = (rpos, col)
+                        col = back.get(col, col)
                         if col in vcols and ss.get("grid_sig") != sig:
                             ss.grid_sig = sig
                             ss.sel = (col, grid.index[rpos])
